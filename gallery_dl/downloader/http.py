@@ -14,6 +14,7 @@ from requests.exceptions import RequestException, ConnectionError, Timeout
 from .common import DownloaderBase
 from .. import text, util, output
 from ssl import SSLError
+from curl_cffi.requests.models import Response
 
 
 class HttpDownloader(DownloaderBase):
@@ -275,7 +276,8 @@ class HttpDownloader(DownloaderBase):
                             pathfmt.extension in SIGNATURE_CHECKS)
 
             # check filename extension against file header
-            if not offset and (validate_ext or validate_sig):
+            if not offset and (validate_ext or validate_sig) \
+                and not isinstance(response, Response):
                 try:
                     file_header = next(
                         content if response.raw.chunked

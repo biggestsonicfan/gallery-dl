@@ -9,6 +9,7 @@
 from .common import Extractor, Message
 from .. import text, util
 from ..cache import memcache
+from curl_cffi import Session
 
 BASE_PATTERN = r"(?:https?://)?(?:www\.)?fanbox\.cc"
 USER_PATTERN = (
@@ -38,6 +39,11 @@ class FanboxExtractor(Extractor):
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-site",
         }
+        
+        self.session = Session(impersonate="firefox135")
+        self.session.cookies.update(self.cookies)
+        self.session.headers.update(self.headers)
+
         self.embeds = self.config("embeds", True)
 
         includes = self.config("metadata")
@@ -71,7 +77,7 @@ class FanboxExtractor(Extractor):
     def _pagination(self, url):
         while url:
             url = text.ensure_http_scheme(url)
-            body = self.request(url, headers=self.headers).json()["body"]
+            body = self.session.request("GET", url, headers=self.headers).json()["body"]
             for item in body["items"]:
                 try:
                     yield self._get_post_data(item["id"])
@@ -175,7 +181,7 @@ class FanboxExtractor(Extractor):
     def _get_plan_data(self, creator_id):
         url = "https://api.fanbox.cc/plan.listCreator"
         params = {"creatorId": creator_id}
-        data = self.request(url, params=params, headers=self.headers).json()
+        data = self.session.request("GET", url, params=params, headers=self.headers).json()
 
         plans = {0: {
             "id"             : "",
